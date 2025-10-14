@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js'; 
 import authRoutes from './routes/authRoutes.js';
+import { protect } from './middleware/authMiddleware.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,9 +13,10 @@ app.use(cors());
 
 app.use('/api/v1/auth', authRoutes);
 
-app.get('/', (req, res) => {
+app.get('/', protect, (req, res) => {
     res.status(200).json({
-        message: 'Recetario API funcionando con modulos ES. Listo!'
+        message: '¡PROTECTED ROUTE WORKING!',
+        user: req.user._id
     });
 });
 
