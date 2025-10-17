@@ -3,7 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import connectDB from './config/db.js'; 
 import authRoutes from './routes/authRoutes.js';
-import recipeRoutes from './routes/recipeRoutes.js'
+import recipeRoutes from './routes/recipeRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
+import externalRoutes from './routes/externalRoutes.js'
 import { protect } from './middleware/authMiddleware.js';
 
 const app = express();
@@ -14,6 +16,8 @@ app.use(cors());
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/recipes', recipeRoutes)
+app.use('/api/v1/search', searchRoutes)
+app.use('/api/v1/external', externalRoutes)
 
 app.get('/', protect, (req, res) => {
     res.status(200).json({
