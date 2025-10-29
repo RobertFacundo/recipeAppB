@@ -1,4 +1,4 @@
-import User from "../models/UserModel.js";
+import {createUser, getUserByEmail} from "../services/UserServices.js";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
@@ -18,12 +18,12 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'Please, write an email and a password' });
         }
 
-        const userExists = await User.findOne({ email });
+        const userExists = await getUserByEmail( email );
         if (userExists) {
             return res.status(400).json({ message: 'User already exists with this email' });
         }
 
-        const user = await User.create({
+        const user = await createUser({
             name,
             email,
             password
@@ -31,10 +31,10 @@ export const registerUser = async (req, res) => {
 
         if (user) {
             res.status(201).json({
-                _id: user._id,
+                userId: user.userId,
                 name: user.name,
                 email: user.email,
-                token: generateToken(user._id),
+                token: generateToken(user.userId),
                 message: 'Success... you can now log in.'
             });
         } else {
@@ -52,14 +52,14 @@ export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await getUserByEmail( email );
 
         if (user && (await bcrypt.compare(password, user.password))) {
             res.json({
-                _id: user._id,
+                userId: user.userId,
                 name: user.name,
                 email: user.email,
-                token: generateToken(user._id),
+                token: generateToken(user.userId),
                 message: 'User logged in',
             });
         } else {

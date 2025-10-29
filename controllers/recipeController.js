@@ -1,8 +1,8 @@
-import Recipe from "../models/RecipeModel.js";
-import User from "../models/UserModel.js";
+import * as RecipeService from "../services/RecipeServices.js";
+import { v4 as uuidv4 } from 'uuid';
 
 export const createRecipe = async (req, res) => {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const { externalId, title, imageUrl, notes } = req.body;
 
     if (!externalId || !title) {
@@ -10,10 +10,9 @@ export const createRecipe = async (req, res) => {
     }
 
     try {
-        const existingRecipe = await Recipe.findOne({
-            userId,
+        const existingRecipe = await RecipeService.getRecipeByExternalId(
             externalId
-        })
+        )
 
         if (existingRecipe) {
             return res.status(409).json({
@@ -22,13 +21,14 @@ export const createRecipe = async (req, res) => {
             });
         }
 
-        const newRecipe = await Recipe.create({
+        const newRecipe = {
             userId,
             externalId,
             title,
             imageUrl,
             notes
-        });
+        };
+        await RecipeService.createRecipe(newRecipe);
 
         return res.status(201).json({
             message: 'Recipe saved successfully',
@@ -44,8 +44,10 @@ export const createRecipe = async (req, res) => {
 }
 
 export const getRecipes = async (req, res) => {
+    const userId = req.user.userId;
+
     try {
-        const recipes = await Recipe.find({ userId: req.user._id }).sort({ createdAt: -1 });
+        const recipes = await RecipeService.getRecipeByUser(userId);
 
         return res.status(200).json({
             count: recipes.length,
@@ -61,41 +63,39 @@ export const getRecipes = async (req, res) => {
 }
 
 export const checkIfSaved = async (req, res) => {
+    const userId = req.user.userId;
+    const { externalId } = req.params;
     try {
-        const { externalId } = req.params;
 
-        const recipe = await Recipe.findOne({
-            userId: req.user._id,
-            externalId: externalId
-        });
+        const recipe = await RecipeService.getRecipeByExternalId(externalId);
 
         if (recipe) {
-            return res.status(200).json({ isSaved: true, recipeId: recipe._id });
+            return res.status(200).json({ isSaved: true, recipeId: recipe.recipeId });
         } else {
             return res.status(200).json({ isSaved: false, recipeId: null });
         }
-    } catch (error){
+    } catch (error) {
         console.error('Error checking if recipe is saved:', error.message);
         return res.status(500).json({
-            message:'Server error while checkin recipe state',
+            message: 'Server error while checkin recipe state',
             error: error.message
         });
     }
 };
 
-export const getRecipeById = async (req, res)=>{
-    try{
-        const recipe = await Recipe.findOne({
-            _id: req.params.id,
-            userId: req.user._id
-        });
+export const getRecipeById = async (req, res) => {
+    const userId = req.user.userId;
+    const recipeId = req.params.id;
 
-        if(!recipe){
-            return res.status(404).json({message: 'Recipe not found'})
+    try {
+        const recipe = await RecipeService.getRecipeById(userId, recipeId);
+
+        if (!recipe) {
+            return res.status(404).json({ message: 'Recipe not found' })
         }
 
         return res.status(200).json(recipe);
-    }catch(error){
+    } catch (error) {
         console.error('Error while getting recipe by id:', error.message);
         return res.status(500).json({
             message: 'Error while getting recipe'
@@ -104,57 +104,50 @@ export const getRecipeById = async (req, res)=>{
 };
 
 
-export const updateRecipe = async (req, res)=>{
-    const {notes} = req.body;
+export const updateRecipe = async (req, res) => {
+    const userId = req.user.userId;
+    const recipeId = req.params.id;
+    const { notes } = req.body;
 
-    const fieldsToUpdate ={};
-    if(notes !== undefined){
-        fieldsToUpdate.notes = notes;
+    if (notes === undefined) {
+        return res.status(400).json({ message: "No valid fields to update" });
     }
 
-    if(Object.keys(fieldsToUpdate).length === 0){
-        return res.status(400).json({message: 'No valid fields to update'});
-    }
+    try {
+        const updatedRecipe = await RecipeService.updatedRecipeNotes(userId, recipeId, notes );
 
-    try{
-        const updatedRecipe = await Recipe.findOneAndUpdate(
-            {_id: req.params.id, userId: req.user._id},
-            {$set: fieldsToUpdate},
-            {new: true, runValidators: true}
-        );
-
-        if(!updatedRecipe){
-            return res.status(404).json({message: 'Recipe not found'});
+        if (!updatedRecipe) {
+            return res.status(404).json({ message: 'Recipe not found' });
         }
 
         return res.status(200).json({
             message: 'Success update',
             recipe: updatedRecipe
         });
-    }catch(error){
+    } catch (error) {
         console.error('Error while updating recipe', error.message);
         return res.status(500).json({
-            message:'Server error while updaying recipe'
+            message: 'Server error while updaying recipe'
         });
     }
 };
 
-export const deleteRecipe = async (req, res)=>{
-    try{
-        const result = await Recipe.findOneAndDelete({
-            _id: req.params.id,
-            userId: req.user._id
-        });
+export const deleteRecipe = async (req, res) => {
+    const userId = req.user.userId;
+    const recipeId = req.params.id;
 
-        if(!result){
-            return res.status(404).json({message: 'Recipe not found'})
+    try {
+        const result = await RecipeService.deleteRecipe(userId, recipeId);
+
+        if (!result) {
+            return res.status(404).json({ message: 'Recipe not found' })
         }
 
         return res.status(204).send();
-    }catch(error){
+    } catch (error) {
         console.error('Server error while deleting recipe:', error.message);
         return res.status(500).json({
-            message:'Server error while deleting recipe'
+            message: 'Server error while deleting recipe'
         });
     }
 };

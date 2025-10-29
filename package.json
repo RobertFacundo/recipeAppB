@@ -12,12 +12,16 @@
   "type": "module",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.919.0",
+    "@aws-sdk/lib-dynamodb": "^3.919.0",
+    "aws-sdk": "^2.1692.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "uuid": "^13.0.0"
   }
 }
