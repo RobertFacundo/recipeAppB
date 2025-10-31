@@ -6,8 +6,7 @@ import recipeRoutes from './routes/recipeRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import externalRoutes from './routes/externalRoutes.js'
 import { protect } from './middleware/authMiddleware.js';
-import { ListTablesCommand } from '@aws-sdk/client-dynamodb';
-import { dynamoClient } from './config/dynamoClient.js'; 
+import connectDB from './config/connectDB.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,23 +26,19 @@ app.get('/', protect, (req, res) => {
     });
 });
 
+// Conectar a MongoDB y arrancar el servidor
 const startServer = async () => {
-    try {
-        console.log('🧩 DynamoDBClient inicializado con región:', process.env.AWS_REGION);
-        console.log('Intentando conectar a DynamoDB...');
+  try {
+    await connectDB(); // 👈 conexión a MongoDB
+    console.log('✅ Conectado a MongoDB correctamente');
 
-        const result = await dynamoClient.send(new ListTablesCommand({}));
-        console.log('✅ Conexión a DynamoDB establecida. Tablas existentes:', result.TableNames);
-
-        app.listen(PORT, () => {
-            console.log(`Servidor Express corriendo en http://localhost:${PORT}`);
-        });
-
-    } catch (error) {
-        console.error('❌ No se pudo iniciar el servidor debido a un error en la base de datos.');
-        console.error('Detalles del error:', error);
-        process.exit(1);
-    }
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor Express corriendo en http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Error al conectar a MongoDB o iniciar el servidor:', error);
+    process.exit(1);
+  }
 };
 
 startServer(); 

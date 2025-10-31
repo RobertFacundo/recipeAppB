@@ -1,36 +1,41 @@
 import jwt from 'jsonwebtoken';
-import { getUserByEmail } from '../services/UserServices.js';
+import User from '../models/UserModel.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export const protect = async (req, res, next) => {
-    let token;
+  let token;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            token = req.headers.authorization.split(' ')[1];
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
 
-            const decoded = jwt.verify(token, JWT_SECRET);
-            const user = await getUserByEmail(decoded.id.toLowerCase().trim())
+      // Verificar el token
+      const decoded = jwt.verify(token, JWT_SECRET);
 
-            if (!user) {
-                return res.status(401).json({ message: 'Usuario no encontrado, token inválido.' });
-            }
+      // Buscar usuario por ID
+      const user = await User.findById(decoded.id).select('-password'); // excluye el hash
 
-            req.user = {
-                userId: user.userId,
-                email: user.email,
-                name: user.name
-            };
+      if (!user) {
+        return res.status(401).json({ message: 'Usuario no encontrado, token inválido.' });
+      }
 
-            next();
-        } catch (error) {
-            console.error('Token verification error:', error.message);
-            return res.status(401).json({ message: 'Unauthorized, token failed or expired' })
-        }
+      // Agregar datos del usuario al request
+      req.user = {
+        _id: user._id,
+        email: user.email,
+        name: user.name
+      };
+
+      next();
+    } catch (error) {
+      console.error('Token verification error:', error.message);
+      return res.status(401).json({ message: 'Unauthorized, token failed or expired' });
     }
-
-    if (!token) {
-        return res.status(401).json({ message: 'No token, no authorization' })
-    }
-}
+  } else {
+    return res.status(401).json({ message: 'No token, no authorization' });
+  }
+};
