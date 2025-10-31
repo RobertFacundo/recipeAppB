@@ -13,7 +13,6 @@ export const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      // Verificar el token
       const decoded = jwt.verify(token, JWT_SECRET);
 
       // Buscar usuario por ID
